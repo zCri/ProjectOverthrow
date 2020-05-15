@@ -1,34 +1,51 @@
-(async () => {
 let Discord = require("discord.js");
 let bot = new Discord.Client();
 
-let config = require("config.js");
-let messagesSent = [];
+let config = require("./config.js");
 
-await bot.login(config.token);
+let chalk = require("chalk");
 
-guild = await bot.guilds.get(config.guild);
-channel = await bot.channels.get(config.channel);
+bot.login(config.token).then(main);
 
-bot.on("guildMemberAdd", sendPropaganda);
+async function main() {
+    console.log(chalk.black.bgCyan("Bot Started."));
 
-function sendPropaganda() {
-    if(checkStaffClear()) {
-        channel.send(config.words[Math.floor(Math.random() * config.words.length)]).then(msg => {messagesSent.push(msg); msg.delete(config.msgAutoDeleteMs)});
+    let guild = await bot.guilds.resolve(config.guild);
+    let channel = await bot.channels.fetch(config.channel);
+
+    if(config.fetchWordsFromChannel) {
+        console.log(chalk.black.bgCyan("Fetching propaganda from Project Overthrow server."));
+        let messages = await(await bot.channels.fetch(config.wordsChannel)).messages.fetch();
+        config.words = [];
+        messages.forEach(msg => config.words.push(msg.content));
+        console.log(chalk.black.bgCyan(`Fetched ${config.words.length} propagandas from Project Overthrow server.`));
     }
-}
 
-function checkStaffClear() {
-    return guild.members.find(m => {m.roles.has(config.staffRole) && m.presence.status !== "offline"}) == null;
-}
+    await checks();
 
-function checks() {
-    if (!checkStaffClear()) {
-        messagesSent.forEach(msg => msg.delete());
+    async function sendPropaganda() {
+        if(await checkStaffClear()) {
+            console.log(chalk.black.bgGreen("Staff not online, sending propaganda."));
+            await channel.send(config.words[Math.floor(Math.random() * config.words.length)]).then(msg => msg.delete({timeout: config.msgAutoDeleteMs}).catch(() => {}));
+        } else {
+            console.log(chalk.black.bgRed("Staff online, not sending propaganda."));
+        }
     }
-    bot.user.setUsername(guild.members.get(172002275412279296).displayName);
-}
 
-setInterval(sendPropaganda, config.msgSendMs);
-setInterval(checks, config.msgAutoDeleteMs);
-})();
+    async function checkStaffClear() {
+        console.log(chalk.black.bgYellow("Checking if staff is online."));
+        return (await guild.members.fetch()).find(m => {return m.roles.cache.has(config.role) && m.user.presence.status !== "offline"}) == null;
+    }
+
+    async function checks() {
+        console.log(chalk.black.bgYellow("Performing regular checks"));
+        if (!await checkStaffClear()) {
+            console.log(chalk.black.bgRed("Staff online, deleting all messages."));
+            (await channel.messages.fetch()).filter(msg => msg.author.id === bot.user.id).forEach(msg => msg.delete().catch(() => {}));
+        }
+        (await guild.members.fetch(bot.user.id)).setNickname((await guild.members.fetch("172002275412279296")).displayName);
+    }
+
+    setInterval(sendPropaganda, config.msgSendMs);
+    setInterval(checks, config.staffCheckMs);
+}
