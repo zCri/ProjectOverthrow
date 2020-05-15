@@ -59,5 +59,11 @@ jspm_packages/
 # next.js build output
 .next
 
+# Package lock
+package-lock.json
+
+#.idea directory
+.idea/
+
 # Bot token
 TOKEN
