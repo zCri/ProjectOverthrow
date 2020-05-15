@@ -8,6 +8,7 @@ let chalk = require("chalk");
 bot.login(config.token).then(main);
 
 async function main() {
+    await bot.user.setPresence({status: "invisible"});
     console.log(chalk.black.bgCyan("Bot Started."));
 
     let guild = await bot.guilds.resolve(config.guild);
