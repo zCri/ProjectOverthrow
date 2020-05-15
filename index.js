@@ -19,7 +19,7 @@ function sendPropaganda() {
 }
 
 function checkStaffClear() {
-    return guild.members.find(m => {m.roles.has(config.staffRole) && m.presence.status === "online"}) == null;
+    return guild.members.find(m => {m.roles.has(config.staffRole) && m.presence.status !== "offline"}) == null;
 }
 
 function checks() {
